@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ slide.title }}</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #editor {
+            width: 50%;
+            height: 100%;
+        }
+
+        #preview {
+            width: 50%;
+            height: 100%;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 工具栏样式 */
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 返回主页按钮样式 */
+        .return-button {
+            background-color: gray;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .return-button:hover {
+            background-color: gray;
+        }
+
+        /* 图片搜索按钮样式 */
+        .image-button {
+            background-color: #4CAF50;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .image-button:hover {
+            background-color: #45a049;
+        }
+
+        /* 导出按钮样式 */
+        .export-button {
+            background-color: #2196F3;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .export-button:hover {
+            background-color: #0b7dda;
+        }
+
+        /* 图片搜索模态框样式 */
+        #imageSearchModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .image-item img {
+            width: 100%;
+            border-radius: 5px;
+        }
+
+        .image-item:hover::after {
+            content: '点击插入';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        #imageSearchForm {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        #imageSearchForm input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+        #imageSearchForm button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        #imageSearchForm button:hover {
+            background-color: #0b7dda;
+        }
+
+        #loadingImages {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #noResults {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .credit-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* 手动调节面板样式 */
+        #adjustmentPanel {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 280px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-close {
+            cursor: pointer;
+            color: #666;
+            font-size: 18px;
+            font-weight: normal;
+        }
+
+        .panel-close:hover {
+            color: #333;
+        }
+
+        .panel-content {
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .control-input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .control-slider {
+            flex: 1;
+            margin: 0 8px;
+        }
+
+        .control-value {
+            min-width: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .control-btn {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .control-btn:hover {
+            background: #e9ecef;
+        }
+
+        .control-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .element-selector {
+            border: 1px solid #007bff;
+            background: rgba(0,123,255,0.1);
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .quick-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .quick-btn.reset {
+            background: #dc3545;
+            color: white;
+        }
+
+        .quick-btn.apply {
+            background: #28a745;
+            color: white;
+        }
+
+        .quick-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* 调节按钮样式 */
+        .adjust-button {
+            background-color: #FF5722;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .adjust-button:hover {
+            background-color: #E64A19;
+        }
+    </style>
+</head>
+<body>
+<!-- 工具栏 -->
+<div id="toolbar">
+    <button class="image-button" onclick="openImageSearch()">搜索图片</button>
+    <button class="adjust-button" onclick="toggleAdjustmentPanel()">手动调节</button>
+    <button class="return-button" onclick="location.href='{% url 'index' %}'">返回主页</button>
+    <button class="export-button" onclick="exportSlide()">导出PPTX</button>
+</div>
+
+<textarea id="editor"></textarea>
+<div id="preview">
+    <iframe id="preview-iframe"></iframe>
+</div>
+
+<!-- 图片搜索模态框 -->
+<div id="imageSearchModal">
+    <div class="modal-content">
+        <span class="close" onclick="closeImageSearch()">&times;</span>
+        <h2>搜索图片</h2>
+        <p>输入关键词搜索相关图片。图片由Unsplash提供。</p>
+        
+        <form id="imageSearchForm" onsubmit="searchImages(event)">
+            <input type="text" id="imageKeywords" placeholder="输入关键词..." required>
+            <button type="submit">搜索</button>
+        </form>
+        
+        <div id="loadingImages">
+            <p>正在搜索图片，请稍候...</p>
+        </div>
+        
+        <div id="noResults">
+            <p>没有找到相关图片，请尝试其他关键词。</p>
+        </div>
+        
+        <div id="imageResults" class="image-grid"></div>
+    </div>
+</div>
+
+<!-- 手动调节面板 -->
+<div id="adjustmentPanel">
+    <div class="panel-header">
+        <span>手动调节</span>
+        <span class="panel-close" onclick="toggleAdjustmentPanel()">&times;</span>
+    </div>
+    <div class="panel-content">
+        <!-- 元素选择 -->
+        <div class="control-group">
+            <div class="control-label">📌 选择元素</div>
+            <div class="control-buttons">
+                <div class="control-btn" onclick="selectElementType('text')">文字</div>
+                <div class="control-btn" onclick="selectElementType('image')">图片</div>
+                <div class="control-btn" onclick="selectElementType('heading')">标题</div>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                点击预览区域中的元素来选择
+            </div>
+        </div>
+
+        <!-- 字体大小调节 -->
+        <div class="control-group" id="fontSizeControl">
+            <div class="control-label">🔤 字体大小</div>
+            <div class="control-row">
+                <input type="range" class="control-slider" id="fontSizeSlider" 
+                       min="12" max="60" value="16" 
+                       oninput="adjustFontSize(this.value)">
+                <span class="control-value" id="fontSizeValue">16px</span>
+            </div>
+            <div class="control-buttons">
+                <div class="control-btn" onclick="quickFontSize(14)">小</div>
+                <div class="control-btn" onclick="quickFontSize(18)">中</div>
+                <div class="control-btn" onclick="quickFontSize(24)">大</div>
+                <div class="control-btn" onclick="quickFontSize(32)">特大</div>
+            </div>
+        </div>
+
+        <!-- 图片大小调节 -->
+        <div class="control-group" id="imageSizeControl">
+            <div class="control-label">🖼️ 图片大小</div>
+            <div class="control-row">
+                <span style="font-size: 12px;">宽度:</span>
+                <input type="range" class="control-slider" id="imageWidthSlider" 
+                       min="20" max="100" value="80" 
+                       oninput="adjustImageSize('width', this.value)">
+                <span class="control-value" id="imageWidthValue">80%</span>
+            </div>
+            <div class="control-row">
+                <span style="font-size: 12px;">高度:</span>
+                <input type="range" class="control-slider" id="imageHeightSlider" 
+                       min="20" max="100" value="60" 
+                       oninput="adjustImageSize('height', this.value)">
+                <span class="control-value" id="imageHeightValue">60%</span>
+            </div>
+            <div class="control-buttons">
+                <div class="control-btn" onclick="quickImageSize(40, 30)">小</div>
+                <div class="control-btn" onclick="quickImageSize(60, 45)">中</div>
+                <div class="control-btn" onclick="quickImageSize(80, 60)">大</div>
+                <div class="control-btn" onclick="quickImageSize(90, 70)">特大</div>
+            </div>
+        </div>
+
+        <!-- 位置调节 -->
+        <div class="control-group" id="positionControl">
+            <div class="control-label">📍 位置调节</div>
+            <div class="control-buttons">
+                <div class="control-btn" onclick="adjustAlignment('left')">左对齐</div>
+                <div class="control-btn" onclick="adjustAlignment('center')">居中</div>
+                <div class="control-btn" onclick="adjustAlignment('right')">右对齐</div>
+            </div>
+            <div class="control-row" style="margin-top: 8px;">
+                <span style="font-size: 12px;">边距:</span>
+                <input type="range" class="control-slider" id="marginSlider" 
+                       min="0" max="50" value="15" 
+                       oninput="adjustMargin(this.value)">
+                <span class="control-value" id="marginValue">15px</span>
+            </div>
+        </div>
+
+        <!-- 预览代码 -->
+        <div class="control-group" id="codePreview" style="display: none;">
+            <div class="control-label">👀 预览代码</div>
+            <textarea id="markdownPreview" 
+                      style="width: 100%; height: 80px; font-family: monospace; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; padding: 8px; resize: vertical;"
+                      readonly
+                      placeholder="这里将显示要写入Markdown的代码..."></textarea>
+            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                点击"应用"按钮将此代码写入左侧编辑器
+            </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="quick-actions">
+            <button class="quick-btn reset" onclick="resetAdjustments()">重置</button>
+            <button class="quick-btn" onclick="previewMarkdownCode()" style="background: #17a2b8; color: white;">预览代码</button>
+            <button class="quick-btn apply" onclick="applyAdjustments()">应用</button>
+        </div>
+
+        <!-- 当前选中元素信息 -->
+        <div id="selectedElementInfo" style="margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666; display: none;">
+            <div><strong>已选中:</strong> <span id="selectedElementText">无</span></div>
+            <div id="selectedElementDetails" style="margin-top: 4px; font-family: monospace; font-size: 10px; color: #888; display: none;">
+                <div>标签: <span id="elementTag"></span></div>
+                <div>Alt: <span id="elementAlt"></span></div>
+                <div>Src: <span id="elementSrc"></span></div>
+            </div>
+            <button onclick="toggleElementDetails()" style="margin-top: 4px; padding: 2px 6px; border: 1px solid #ddd; background: white; border-radius: 3px; font-size: 10px; cursor: pointer;">
+                显示详情
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 引入 jQuery -->
+{% load static %}
+<script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<!-- 与 WebSocket 进行通信的脚本 -->
+<script>
+    var slideId = {{ slide.id }};
+
+    // 自动判断使用 ws:// 或 wss://
+    var protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    var socket = new WebSocket(protocol + window.location.host + '/ws/slide/' + slideId + '/');
+
+    var currentIndices = {h: 0, v: 0};
+    var editor = document.getElementById('editor');
+
+    var slides = []; // 存储幻灯片的位置信息
+    var lastSlideIndices = {h: -1, v: -1}; // 记录上一次的幻灯片索引
+
+    socket.onopen = function (e) {
+        console.log('WebSocket 连接已打开');
+        // 加载幻灯片内容
+        socket.send(JSON.stringify({
+            'action': 'load'
+        }));
+    };
+
+    socket.onmessage = function (e) {
+        var data = JSON.parse(e.data);
+        var action = data['action'];
+
+        if (action === 'load') {
+            // 加载内容到编辑器
+            editor.value = data['content'] ;
+            // 解析幻灯片
+            slides = parseSlides(editor.value);
+
+            // 初始加载时更新预览
+            sendPreview();
+
+            // 初始设置光标位置事件
+            onCursorPositionChange();
+        } else if (action === 'preview') {
+            var html_content = data['html'];
+
+            var iframe = document.getElementById('preview-iframe');
+
+            // 获取当前幻灯片的索引
+            if (iframe.contentWindow && iframe.contentWindow.Reveal && iframe.contentWindow.Reveal.getIndices) {
+                currentIndices = iframe.contentWindow.Reveal.getIndices();
+            }
+
+            // 更新预览 iframe 的内容
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(html_content);
+            iframe.contentDocument.close();
+
+            // 清除错误消息
+            clearErrorMessage();
+
+            // 等待 iframe 加载完成后，恢复幻灯片位置
+            iframe.onload = function () {
+                function restoreSlide() {
+                    if (iframe.contentWindow.Reveal && iframe.contentWindow.Reveal.isReady()) {
+                        iframe.contentWindow.Reveal.slide(currentIndices.h, currentIndices.v);
+
+                        // 当幻灯片变化时，更新 currentIndices
+                        iframe.contentWindow.Reveal.on('slidechanged', function (event) {
+                            currentIndices = iframe.contentWindow.Reveal.getIndices();
+                        });
+
+                        // 根据光标位置导航到对应的幻灯片
+                        navigateToSlide(lastSlideIndices.h, lastSlideIndices.v);
+                        
+                        // 启动智能调整功能
+                        setTimeout(function() {
+                            try {
+                                if (iframe.contentWindow && iframe.contentWindow.AutoResize) {
+                                    // 使用新的智能调整方法
+                                    iframe.contentWindow.AutoResize.adjustSlide(iframe.contentWindow.Reveal.getCurrentSlide());
+                                }
+                                // 触发自定义事件通知幻灯片已更新
+                                if (iframe.contentDocument) {
+                                    var event = new Event('slideUpdated');
+                                    iframe.contentDocument.dispatchEvent(event);
+                                }
+                            } catch (e) {
+                                console.log('智能调整功能暂不可用:', e.message);
+                            }
+                        }, 400);
+                    } else {
+                        setTimeout(restoreSlide, 50);
+                    }
+                }
+
+                restoreSlide();
+            };
+        } else if (action === 'error') {
+            var errorMessage = data['message'];
+            displayErrorMessage(errorMessage);
+        }
+    };
+
+    socket.onclose = function (e) {
+        console.log('WebSocket 连接已关闭');
+    };
+
+    // 监听编辑器内容的变化，实时预览
+    $('#editor').on('input', function () {
+        // 更新幻灯片解析
+        slides = parseSlides(editor.value);
+
+        sendPreview();
+    });
+
+    function sendPreview() {
+        var markdown = $('#editor').val();
+        socket.send(JSON.stringify({
+            'action': 'preview',
+            'markdown': markdown
+        }));
+    }
+
+    // 显示错误消息
+    function displayErrorMessage(message) {
+        // 如果不存在错误消息元素，创建一个
+        if (!document.getElementById('error-message')) {
+            var errorDiv = document.createElement('div');
+            errorDiv.id = 'error-message';
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.bottom = '20px';
+            errorDiv.style.left = '20px';
+            errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
+            errorDiv.style.color = '#fff';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.borderRadius = '5px';
+            errorDiv.style.maxWidth = '300px';
+            errorDiv.style.zIndex = '1000';
+            errorDiv.style.fontSize = '14px';
+            errorDiv.style.lineHeight = '1.5';
+            document.body.appendChild(errorDiv);
+        }
+
+        var errorDiv = document.getElementById('error-message');
+        errorDiv.textContent = '语法错误：' + message;
+    }
+
+    // 清除错误消息
+    function clearErrorMessage() {
+        var errorDiv = document.getElementById('error-message');
+        if (errorDiv) {
+            errorDiv.parentNode.removeChild(errorDiv);
+        }
+    }
+
+    // 自动保存功能，每分钟保存一次
+    setInterval(function () {
+        saveSlide();
+    }, 60000);
+
+    // 在离开页面前保存幻灯片内容
+    window.addEventListener('beforeunload', function () {
+        saveSlide();
+    });
+
+    // 保存幻灯片内容的函数
+    function saveSlide() {
+        var markdown = $('#editor').val();
+        socket.send(JSON.stringify({
+            'action': 'save',
+            'markdown': markdown
+        }));
+    }
+
+    // 解析幻灯片内容，找出每个幻灯片的开始位置
+    function parseSlides(content) {
+        var lines = content.split('\n');
+        var slideStart = [];
+        var slide = {start: 0, h: 0, v: 0};
+        var h = 0;
+        var v = 0;
+
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].trim() === '---') {
+                slideStart.push({start: i, h: h, v: v});
+                h++;
+            }
+        }
+
+        return slideStart;
+    }
+
+    // 监听光标位置变化
+    function onCursorPositionChange() {
+        editor.addEventListener('click', updateCursorPosition);
+        editor.addEventListener('keyup', updateCursorPosition);
+    }
+
+    // 根据光标位置更新预览的幻灯片
+    function updateCursorPosition() {
+        var cursorPosition = editor.selectionStart;
+        var content = editor.value.substring(0, cursorPosition);
+        var lines = content.split('\n');
+        var currentLine = lines.length;
+
+        // 找出当前光标所在的幻灯片
+        var currentSlideIndex = -1;
+
+        for (var i = 0; i < slides.length; i++) {
+            if (currentLine <= slides[i].start) {
+                currentSlideIndex = i - 1;
+                break;
+            }
+        }
+
+        if (currentSlideIndex === -1 && slides.length > 0) {
+            currentSlideIndex = slides.length - 1;
+        }
+
+        // 如果找到了合适的幻灯片，并且与上一次不同
+        if (currentSlideIndex >= 0 && (
+            lastSlideIndices.h !== slides[currentSlideIndex].h ||
+            lastSlideIndices.v !== slides[currentSlideIndex].v)) {
+            // 更新上一次的索引
+            lastSlideIndices.h = slides[currentSlideIndex].h;
+            lastSlideIndices.v = slides[currentSlideIndex].v;
+            // 导航到相应的幻灯片
+            navigateToSlide(lastSlideIndices.h, lastSlideIndices.v);
+        }
+    }
+
+    // 导航到指定的幻灯片
+    function navigateToSlide(h, v) {
+        var iframe = document.getElementById('preview-iframe');
+        if (iframe.contentWindow && iframe.contentWindow.Reveal && iframe.contentWindow.Reveal.isReady()) {
+            iframe.contentWindow.Reveal.slide(h, v);
+        }
+    }
+
+    // 图片搜索功能
+    function openImageSearch() {
+        document.getElementById('imageSearchModal').style.display = 'block';
+    }
+
+    function closeImageSearch() {
+        document.getElementById('imageSearchModal').style.display = 'none';
+    }
+
+    function searchImages(event) {
+        event.preventDefault();
+        
+        const keywords = document.getElementById('imageKeywords').value.trim();
+        if (!keywords) return;
+        
+        // 显示加载中，隐藏其他
+        document.getElementById('loadingImages').style.display = 'block';
+        document.getElementById('noResults').style.display = 'none';
+        document.getElementById('imageResults').innerHTML = '';
+        
+        // 发送AJAX请求
+        $.ajax({
+            url: '{% url "add_image_to_slide" %}',
+            type: 'POST',
+            data: {
+                'keywords': keywords,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                document.getElementById('loadingImages').style.display = 'none';
+                
+                if (response.images && response.images.length > 0) {
+                    displayImages(response.images);
+                } else {
+                    document.getElementById('noResults').style.display = 'block';
+                }
+            },
+            error: function(xhr, status, error) {
+                document.getElementById('loadingImages').style.display = 'none';
+                document.getElementById('noResults').style.display = 'block';
+                console.error('搜索图片失败:', error);
+            }
+        });
+    }
+
+    function displayImages(images) {
+        const resultsDiv = document.getElementById('imageResults');
+        resultsDiv.innerHTML = '';
+        
+        images.forEach(function(image) {
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+            
+            const img = document.createElement('img');
+            img.src = image.url;
+            img.alt = image.alt;
+            
+            const credit = document.createElement('div');
+            credit.className = 'credit-text';
+            credit.innerHTML = `Photo by <a href="${image.credit.link}" target="_blank">${image.credit.name}</a> on Unsplash`;
+            
+            imageItem.appendChild(img);
+            imageItem.appendChild(credit);
+            
+            // 点击图片插入到编辑器
+            imageItem.addEventListener('click', function() {
+                insertImageToEditor(image);
+                closeImageSearch();
+            });
+            
+            resultsDiv.appendChild(imageItem);
+        });
+    }
+
+    function insertImageToEditor(image) {
+        // 获取光标位置
+        const cursorPosition = editor.selectionStart;
+        
+        // 准备Markdown格式的图片
+        const markdownImage = `\n![${image.alt}](${image.url})\n*Photo by [${image.credit.name}](${image.credit.link}) on Unsplash*\n`;
+        
+        // 在光标位置插入图片
+        const content = editor.value;
+        editor.value = content.substring(0, cursorPosition) + markdownImage + content.substring(cursorPosition);
+        
+        // 更新预览
+        sendPreview();
+        
+        // 保存
+        saveSlide();
+    }
+
+    // 关闭模态框的事件监听
+    window.onclick = function(event) {
+        const modal = document.getElementById('imageSearchModal');
+        if (event.target === modal) {
+            closeImageSearch();
+        }
+    };
+    
+    // 导出幻灯片为PPTX
+    function exportSlide() {
+        // 先保存幻灯片
+        saveSlide();
+        
+        // 弹出提示
+        const confirmed = confirm('将生成PPTX格式文件供下载，过程可能需要几秒钟，确定要导出吗？');
+        if (confirmed) {
+            // 显示加载中提示
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'export-loading';
+            loadingDiv.style.position = 'fixed';
+            loadingDiv.style.top = '50%';
+            loadingDiv.style.left = '50%';
+            loadingDiv.style.transform = 'translate(-50%, -50%)';
+            loadingDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            loadingDiv.style.color = '#fff';
+            loadingDiv.style.padding = '20px';
+            loadingDiv.style.borderRadius = '5px';
+            loadingDiv.style.zIndex = '2000';
+            loadingDiv.innerHTML = '<p>正在生成PPTX，请稍候...</p>';
+            document.body.appendChild(loadingDiv);
+            
+            // 执行导出操作
+            window.location.href = '{% url 'export_to_pptx' slide_id=slide.id %}';
+            
+            // 5秒后移除加载提示
+            setTimeout(function() {
+                const loadingElement = document.getElementById('export-loading');
+                if (loadingElement) {
+                    loadingElement.parentNode.removeChild(loadingElement);
+                }
+            }, 5000);
+        }
+    }
+
+    // =============== 手动调节功能 ===============
+    
+    let selectedElement = null;
+    let originalStyles = new Map();
+    let adjustmentPanelVisible = false;
+
+    // 切换调节面板显示/隐藏
+    function toggleAdjustmentPanel() {
+        const panel = document.getElementById('adjustmentPanel');
+        adjustmentPanelVisible = !adjustmentPanelVisible;
+        
+        if (adjustmentPanelVisible) {
+            panel.style.display = 'block';
+            initializeElementSelection();
+        } else {
+            panel.style.display = 'none';
+            clearElementSelection();
+        }
+    }
+
+    // 初始化元素选择功能
+    function initializeElementSelection() {
+        const iframe = document.getElementById('preview-iframe');
+        if (!iframe.contentDocument) return;
+
+        // 为预览区域的所有可调节元素添加点击事件
+        const selectableElements = iframe.contentDocument.querySelectorAll('p, h1, h2, h3, h4, h5, h6, img, li, span');
+        
+        selectableElements.forEach(element => {
+            element.style.cursor = 'pointer';
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                selectElement(element);
+            });
+            
+            // 添加悬停效果
+            element.addEventListener('mouseenter', function() {
+                if (element !== selectedElement) {
+                    element.style.outline = '2px dashed #007bff';
+                }
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                if (element !== selectedElement) {
+                    element.style.outline = 'none';
+                }
+            });
+        });
+    }
+
+    // 选择元素
+    function selectElement(element) {
+        // 清除之前选中的元素
+        if (selectedElement) {
+            selectedElement.classList.remove('element-selector');
+            selectedElement.style.outline = 'none';
+        }
+        
+        selectedElement = element;
+        element.classList.add('element-selector');
+        
+        // 保存原始样式
+        if (!originalStyles.has(element)) {
+            const computedStyles = window.getComputedStyle(element);
+            originalStyles.set(element, {
+                fontSize: computedStyles.fontSize,
+                width: computedStyles.width,
+                height: computedStyles.height,
+                textAlign: computedStyles.textAlign,
+                margin: computedStyles.margin,
+                maxWidth: computedStyles.maxWidth,
+                maxHeight: computedStyles.maxHeight
+            });
+        }
+        
+        // 更新控制面板
+        updateControlPanel(element);
+        
+        // 显示选中信息
+        const info = document.getElementById('selectedElementInfo');
+        const infoText = document.getElementById('selectedElementText');
+        info.style.display = 'block';
+        infoText.textContent = getElementDescription(element);
+        
+        // 更新详细信息
+        updateElementDetails(element);
+    }
+
+    // 获取元素描述
+    function getElementDescription(element) {
+        const tagName = element.tagName.toLowerCase();
+        if (tagName === 'img') {
+            return `图片 (${element.alt || '无描述'})`;
+        } else if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+            return `${tagName.toUpperCase()}标题: ${element.textContent.substring(0, 20)}...`;
+        } else {
+            return `${tagName}文本: ${element.textContent.substring(0, 20)}...`;
+        }
+    }
+
+    // 更新控制面板
+    function updateControlPanel(element) {
+        const isImage = element.tagName.toLowerCase() === 'img';
+        const isText = !isImage;
+        
+        // 显示/隐藏相关控件
+        document.getElementById('fontSizeControl').style.display = isText ? 'block' : 'none';
+        document.getElementById('imageSizeControl').style.display = isImage ? 'block' : 'none';
+        
+        if (isText) {
+            // 更新字体大小滑块
+            const fontSize = parseInt(window.getComputedStyle(element).fontSize);
+            document.getElementById('fontSizeSlider').value = fontSize;
+            document.getElementById('fontSizeValue').textContent = fontSize + 'px';
+        }
+        
+        if (isImage) {
+            // 更新图片大小滑块
+            const rect = element.getBoundingClientRect();
+            const containerRect = element.parentElement.getBoundingClientRect();
+            const widthPercent = Math.round((rect.width / containerRect.width) * 100);
+            const heightPercent = Math.round((rect.height / containerRect.height) * 100);
+            
+            document.getElementById('imageWidthSlider').value = widthPercent;
+            document.getElementById('imageWidthValue').textContent = widthPercent + '%';
+            document.getElementById('imageHeightSlider').value = heightPercent;
+            document.getElementById('imageHeightValue').textContent = heightPercent + '%';
+        }
+        
+        // 更新边距滑块
+        const marginValue = parseInt(window.getComputedStyle(element).margin) || 15;
+        document.getElementById('marginSlider').value = marginValue;
+        document.getElementById('marginValue').textContent = marginValue + 'px';
+    }
+
+    // 按元素类型选择
+    function selectElementType(type) {
+        // 更新按钮状态
+        document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        const iframe = document.getElementById('preview-iframe');
+        if (!iframe.contentDocument) return;
+        
+        let selector = '';
+        switch(type) {
+            case 'text':
+                selector = 'p, li, span';
+                break;
+            case 'image':
+                selector = 'img';
+                break;
+            case 'heading':
+                selector = 'h1, h2, h3, h4, h5, h6';
+                break;
+        }
+        
+        const elements = iframe.contentDocument.querySelectorAll(selector);
+        if (elements.length > 0) {
+            selectElement(elements[0]); // 选择第一个匹配的元素
+        }
+    }
+
+    // 调整字体大小
+    function adjustFontSize(size) {
+        if (!selectedElement) return;
+        
+        selectedElement.style.fontSize = size + 'px';
+        document.getElementById('fontSizeValue').textContent = size + 'px';
+    }
+
+    // 快速设置字体大小
+    function quickFontSize(size) {
+        document.getElementById('fontSizeSlider').value = size;
+        adjustFontSize(size);
+    }
+
+    // 调整图片大小
+    function adjustImageSize(dimension, value) {
+        if (!selectedElement || selectedElement.tagName.toLowerCase() !== 'img') return;
+        
+        if (dimension === 'width') {
+            selectedElement.style.width = value + '%';
+            selectedElement.style.maxWidth = value + '%';
+            document.getElementById('imageWidthValue').textContent = value + '%';
+        } else if (dimension === 'height') {
+            selectedElement.style.height = value + 'vh';
+            selectedElement.style.maxHeight = value + 'vh';
+            document.getElementById('imageHeightValue').textContent = value + '%';
+        }
+    }
+
+    // 快速设置图片大小
+    function quickImageSize(width, height) {
+        document.getElementById('imageWidthSlider').value = width;
+        document.getElementById('imageHeightSlider').value = height;
+        adjustImageSize('width', width);
+        adjustImageSize('height', height);
+    }
+
+    // 调整对齐方式
+    function adjustAlignment(align) {
+        if (!selectedElement) return;
+        
+        selectedElement.style.textAlign = align;
+        
+        // 更新按钮状态
+        document.querySelectorAll('#positionControl .control-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+
+    // 调整边距
+    function adjustMargin(value) {
+        if (!selectedElement) return;
+        
+        selectedElement.style.margin = value + 'px auto';
+        document.getElementById('marginValue').textContent = value + 'px';
+    }
+
+    // 重置调整
+    function resetAdjustments() {
+        if (!selectedElement) return;
+        
+        const original = originalStyles.get(selectedElement);
+        if (original) {
+            selectedElement.style.fontSize = original.fontSize;
+            selectedElement.style.width = original.width;
+            selectedElement.style.height = original.height;
+            selectedElement.style.textAlign = original.textAlign;
+            selectedElement.style.margin = original.margin;
+            selectedElement.style.maxWidth = original.maxWidth;
+            selectedElement.style.maxHeight = original.maxHeight;
+            
+            // 更新控制面板
+            updateControlPanel(selectedElement);
+        }
+    }
+
+    // 应用调整（将样式固化到Markdown）
+    function applyAdjustments() {
+        if (!selectedElement) {
+            alert('请先选择一个元素');
+            return;
+        }
+        
+        try {
+            const elementInfo = analyzeSelectedElement();
+            if (!elementInfo) {
+                alert('无法分析选中的元素');
+                return;
+            }
+            
+            const newMarkdown = updateMarkdownWithStyles(elementInfo);
+            if (newMarkdown) {
+                // 更新编辑器内容
+                editor.value = newMarkdown;
+                
+                // 重新解析并更新预览
+                slides = parseSlides(editor.value);
+                sendPreview();
+                
+                // 保存
+                saveSlide();
+                
+                alert('样式已应用到Markdown文本中！');
+                console.log('样式已成功写入Markdown');
+            } else {
+                alert('应用样式失败，请重试');
+            }
+        } catch (error) {
+            console.error('应用样式时出错:', error);
+            alert('应用样式时出现错误: ' + error.message);
+        }
+    }
+
+    // 分析选中的元素
+    function analyzeSelectedElement() {
+        if (!selectedElement) return null;
+        
+        const tagName = selectedElement.tagName.toLowerCase();
+        const textContent = selectedElement.textContent;
+        const computedStyles = window.getComputedStyle(selectedElement);
+        
+        // 获取当前应用的样式
+        const appliedStyles = {
+            fontSize: selectedElement.style.fontSize || '',
+            width: selectedElement.style.width || '',
+            height: selectedElement.style.height || '',
+            maxWidth: selectedElement.style.maxWidth || '',
+            maxHeight: selectedElement.style.maxHeight || '',
+            textAlign: selectedElement.style.textAlign || '',
+            margin: selectedElement.style.margin || ''
+        };
+        
+        // 过滤空值
+        const validStyles = {};
+        Object.keys(appliedStyles).forEach(key => {
+            if (appliedStyles[key] && appliedStyles[key].trim() !== '') {
+                validStyles[key] = appliedStyles[key];
+            }
+        });
+        
+        return {
+            tagName,
+            textContent: textContent.trim(),
+            styles: validStyles,
+            isImage: tagName === 'img',
+            alt: tagName === 'img' ? selectedElement.alt : '',
+            src: tagName === 'img' ? selectedElement.src : ''
+        };
+    }
+
+    // 将样式更新到Markdown文本中
+    function updateMarkdownWithStyles(elementInfo) {
+        const markdownContent = editor.value;
+        const lines = markdownContent.split('\n');
+        
+        if (elementInfo.isImage) {
+            return updateImageInMarkdown(lines, elementInfo);
+        } else {
+            return updateTextInMarkdown(lines, elementInfo);
+        }
+    }
+
+    // 更新图片在Markdown中的样式
+    function updateImageInMarkdown(lines, elementInfo) {
+        const imageText = elementInfo.alt;
+        const imageSrc = elementInfo.src;
+        
+        // 构建样式字符串
+        const styleString = buildStyleString(elementInfo.styles);
+        
+        console.log('正在更新图片:', {
+            alt: imageText,
+            src: imageSrc,
+            styles: elementInfo.styles
+        });
+        
+        let updated = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // 匹配标准Markdown图片语法: ![alt](src)
+            const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/;
+            const markdownMatch = line.match(markdownImageRegex);
+            
+            if (markdownMatch) {
+                const [fullMatch, alt, src] = markdownMatch;
+                
+                console.log('检查Markdown图片:', { alt, src, target: imageText });
+                
+                // 检查是否是目标图片（通过alt或src的相似性匹配）
+                if (isImageMatch(alt, src, imageText, imageSrc)) {
+                    // 替换为HTML格式，包含样式
+                    const newImageTag = `<img alt="${alt}" src="${src}"${styleString}>`;
+                    lines[i] = line.replace(fullMatch, newImageTag);
+                    console.log('更新Markdown图片为:', newImageTag);
+                    updated = true;
+                    break;
+                }
+            }
+            
+            // 匹配已有的HTML图片标签
+            const htmlImageRegex = /<img[^>]*>/;
+            if (htmlImageRegex.test(line)) {
+                // 更精确的HTML图片匹配
+                const altMatch = line.match(/alt=["']([^"']*)["']/);
+                const srcMatch = line.match(/src=["']([^"']*)["']/);
+                
+                if (altMatch && srcMatch) {
+                    const alt = altMatch[1];
+                    const src = srcMatch[1];
+                    
+                    console.log('检查HTML图片:', { alt, src, target: imageText });
+                    
+                    if (isImageMatch(alt, src, imageText, imageSrc)) {
+                        // 更新现有HTML标签的样式
+                        const originalTag = line.match(/<img[^>]*>/)[0];
+                        const newImageTag = updateExistingImageTag(originalTag, elementInfo.styles);
+                        lines[i] = line.replace(originalTag, newImageTag);
+                        console.log('更新HTML图片为:', newImageTag);
+                        updated = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!updated) {
+            console.warn('未找到匹配的图片，无法更新');
+        }
+        
+        return lines.join('\n');
+    }
+
+    // 检查图片是否匹配
+    function isImageMatch(alt1, src1, alt2, src2) {
+        // 1. 通过alt属性匹配
+        if (alt1 && alt2 && alt1.trim() === alt2.trim()) {
+            return true;
+        }
+        
+        // 2. 通过src的文件名匹配
+        const filename1 = getImageFilename(src1);
+        const filename2 = getImageFilename(src2);
+        if (filename1 && filename2 && filename1 === filename2) {
+            return true;
+        }
+        
+        // 3. 通过src的部分匹配（处理完整URL vs 相对路径的情况）
+        if (src1 && src2) {
+            // 如果其中一个包含另一个
+            if (src1.includes(src2) || src2.includes(src1)) {
+                return true;
+            }
+            
+            // 如果去掉协议和域名后相同
+            const cleanSrc1 = src1.replace(/^https?:\/\/[^\/]+/, '');
+            const cleanSrc2 = src2.replace(/^https?:\/\/[^\/]+/, '');
+            if (cleanSrc1 === cleanSrc2) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // 更新文本在Markdown中的样式
+    function updateTextInMarkdown(lines, elementInfo) {
+        const targetText = elementInfo.textContent;
+        const styleString = buildStyleString(elementInfo.styles);
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // 跳过空行和非文本行
+            if (!line || line.startsWith('#') || line.startsWith('```') || line.startsWith('---')) {
+                continue;
+            }
+            
+            // 检查行是否包含目标文本
+            if (line.includes(targetText) || normalizeText(line).includes(normalizeText(targetText))) {
+                // 根据元素类型处理
+                if (elementInfo.tagName.startsWith('h')) {
+                    // 标题元素 - 保持Markdown语法，在下一行添加HTML标签
+                    if (!lines[i + 1] || !lines[i + 1].includes('<' + elementInfo.tagName)) {
+                        lines.splice(i + 1, 0, `<${elementInfo.tagName}${styleString}>${targetText}</${elementInfo.tagName}>`);
+                        lines[i] = ''; // 清空原始Markdown标题行
+                    }
+                } else {
+                    // 普通文本 - 直接替换为HTML标签
+                    const htmlTag = `<${elementInfo.tagName}${styleString}>${targetText}</${elementInfo.tagName}>`;
+                    lines[i] = lines[i].replace(targetText, htmlTag);
+                }
+                break;
+            }
+        }
+        
+        return lines.join('\n');
+    }
+
+    // 构建样式字符串
+    function buildStyleString(styles) {
+        if (!styles || Object.keys(styles).length === 0) {
+            return '';
+        }
+        
+        const styleArray = [];
+        Object.keys(styles).forEach(property => {
+            const value = styles[property];
+            if (value) {
+                // 转换驼峰命名为CSS属性名
+                const cssProperty = property.replace(/([A-Z])/g, '-$1').toLowerCase();
+                styleArray.push(`${cssProperty}: ${value}`);
+            }
+        });
+        
+        return styleArray.length > 0 ? ` style="${styleArray.join('; ')}"` : '';
+    }
+
+    // 更新现有图片标签的样式
+    function updateExistingImageTag(imageTag, newStyles) {
+        const styleString = buildStyleString(newStyles);
+        
+        console.log('更新图片标签:', { 
+            originalTag: imageTag, 
+            newStyles: newStyles,
+            styleString: styleString 
+        });
+        
+        // 移除现有的style属性
+        let updatedTag = imageTag.replace(/\s+style=["'][^"']*["']/g, '');
+        
+        // 确保标签以>结尾
+        if (!updatedTag.endsWith('>')) {
+            updatedTag += '>';
+        }
+        
+        // 添加新的style属性
+        if (styleString) {
+            // 在>之前插入style属性
+            updatedTag = updatedTag.replace(/>$/, `${styleString}>`);
+        }
+        
+        console.log('更新后的标签:', updatedTag);
+        return updatedTag;
+    }
+
+    // 获取图片文件名
+    function getImageFilename(src) {
+        if (!src) return '';
+        
+        try {
+            // 移除查询参数和锚点
+            let cleanSrc = src.split('?')[0].split('#')[0];
+            
+            // 提取文件名
+            let filename = cleanSrc.split('/').pop();
+            
+            // 如果文件名为空或只是路径分隔符，尝试获取倒数第二个部分
+            if (!filename || filename === '') {
+                const parts = cleanSrc.split('/').filter(part => part.length > 0);
+                filename = parts.length > 0 ? parts[parts.length - 1] : '';
+            }
+            
+            return filename;
+        } catch (error) {
+            console.error('提取文件名失败:', error);
+            return '';
+        }
+    }
+
+    // 标准化文本（移除多余空格和标点）
+    function normalizeText(text) {
+        return text.replace(/\s+/g, ' ').replace(/[^\w\s\u4e00-\u9fff]/g, '').trim();
+    }
+
+    // 预览Markdown代码
+    function previewMarkdownCode() {
+        if (!selectedElement) {
+            alert('请先选择一个元素');
+            return;
+        }
+        
+        try {
+            const elementInfo = analyzeSelectedElement();
+            if (!elementInfo) {
+                alert('无法分析选中的元素');
+                return;
+            }
+            
+            // 生成预览代码
+            const previewCode = generatePreviewCode(elementInfo);
+            
+            // 显示预览区域
+            document.getElementById('codePreview').style.display = 'block';
+            document.getElementById('markdownPreview').value = previewCode;
+            
+        } catch (error) {
+            console.error('生成预览代码时出错:', error);
+            alert('生成预览代码时出现错误: ' + error.message);
+        }
+    }
+
+    // 生成预览代码
+    function generatePreviewCode(elementInfo) {
+        const styleString = buildStyleString(elementInfo.styles);
+        
+        if (elementInfo.isImage) {
+            // 图片元素
+            return `<img alt="${elementInfo.alt}" src="${elementInfo.src}"${styleString}>`;
+        } else if (elementInfo.tagName.startsWith('h')) {
+            // 标题元素
+            return `<${elementInfo.tagName}${styleString}>${elementInfo.textContent}</${elementInfo.tagName}>`;
+        } else {
+            // 普通文本元素
+            return `<${elementInfo.tagName}${styleString}>${elementInfo.textContent}</${elementInfo.tagName}>`;
+        }
+    }
+
+    // 清除元素选择
+    function clearElementSelection() {
+        if (selectedElement) {
+            selectedElement.classList.remove('element-selector');
+            selectedElement.style.outline = 'none';
+            selectedElement = null;
+        }
+        
+        // 清除所有元素的悬停效果
+        const iframe = document.getElementById('preview-iframe');
+        if (iframe.contentDocument) {
+            const elements = iframe.contentDocument.querySelectorAll('*');
+            elements.forEach(element => {
+                element.style.cursor = '';
+                element.style.outline = 'none';
+            });
+        }
+    }
+
+    // 更新元素详细信息
+    function updateElementDetails(element) {
+        const tagName = element.tagName.toLowerCase();
+        document.getElementById('elementTag').textContent = tagName;
+        
+        if (tagName === 'img') {
+            document.getElementById('elementAlt').textContent = element.alt || '(无)';
+            document.getElementById('elementSrc').textContent = element.src ? element.src.substring(0, 50) + '...' : '(无)';
+        } else {
+            document.getElementById('elementAlt').textContent = '(非图片)';
+            document.getElementById('elementSrc').textContent = '(非图片)';
+        }
+    }
+
+    // 切换元素详情显示
+    function toggleElementDetails() {
+        const details = document.getElementById('selectedElementDetails');
+        const button = event.target;
+        
+        if (details.style.display === 'none' || !details.style.display) {
+            details.style.display = 'block';
+            button.textContent = '隐藏详情';
+        } else {
+            details.style.display = 'none';
+            button.textContent = '显示详情';
+        }
+    }
+
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 监听iframe加载完成
+        const iframe = document.getElementById('preview-iframe');
+        iframe.addEventListener('load', function() {
+            if (adjustmentPanelVisible) {
+                setTimeout(initializeElementSelection, 500);
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导入文档 - jyySlideWeb</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        /* 内联样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-name {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">从文档导入幻灯片</h1>
+                <nav>
+                    <a href="{% url 'index' %}" class="text-blue-500 hover:text-blue-700">返回主页</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+            
+            <form method="post" id="import-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-medium mb-2">上传文档</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="document_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                    <span>选择文件</span>
+                                    <input id="document_file" name="document_file" type="file" class="sr-only" accept=".docx,.doc,.pdf,.txt,.md" required>
+                                </label>
+                                <p class="pl-1">或拖放文件到此处</p>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                支持格式: DOCX, DOC, PDF, TXT, MD
+                            </p>
+                            <div id="file-name" class="file-name hidden">
+                                <span class="inline-block bg-blue-100 rounded px-3 py-1 text-sm font-semibold text-blue-700">
+                                    未选择文件
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="title" class="block text-gray-700 mb-2">幻灯片标题</label>
+                    <input type="text" id="title" name="title" class="w-full px-3 py-2 border rounded" placeholder="输入幻灯片标题" value="{{ title|default:'' }}" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="slides_count" class="block text-gray-700 mb-2">幻灯片数量 (1-10)</label>
+                    <input type="number" id="slides_count" name="slides_count" min="1" max="10" value="5" class="w-full px-3 py-2 border rounded">
+                </div>
+
+                <div class="mb-4">
+                    <label for="layout" class="block text-gray-700 mb-2">布局选择</label>
+                    <select id="layout" name="layout" class="w-full px-3 py-2 border rounded">
+                        <option value="horizontal_vertical">水平章节+垂直子页面 (推荐)</option>
+                        <option value="horizontal_only">仅水平切换</option>
+                        <option value="with_animation">包含渐变效果</option>
+                    </select>
+                </div>
+
+                <div class="mb-4 flex items-center">
+                    <input type="checkbox" id="auto_insert_images" name="auto_insert_images" class="mr-2" checked>
+                    <label for="auto_insert_images" class="text-gray-700">自动插入相关图片 <span class="text-sm text-gray-500">(AI会分析内容，从Unsplash搜索相关图片)</span></label>
+                </div>
+
+                <div class="text-right">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        导入并生成幻灯片
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="text-center mt-2 font-semibold text-lg">正在处理文档并生成幻灯片，请稍候...</p>
+                
+                <div class="mt-4 max-w-md mx-auto">
+                    <div id="progress-container" class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                        <div id="progress-bar" class="bg-blue-500 h-4 rounded-full" style="width: 10%"></div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-600">
+                        <p id="stage-extract" class="py-1 border-l-4 border-blue-500 pl-2 mb-1 bg-blue-50">1. 文档内容提取中...</p>
+                        <p id="stage-analyze" class="py-1 border-l-4 border-gray-300 pl-2 mb-1">2. AI分析文档内容...</p>
+                        <p id="stage-generate" class="py-1 border-l-4 border-gray-300 pl-2 mb-1">3. 生成幻灯片结构...</p>
+                        <p id="stage-images" class="py-1 border-l-4 border-gray-300 pl-2 mb-1">4. 添加相关图片...</p>
+                        <p id="stage-finalize" class="py-1 border-l-4 border-gray-300 pl-2">5. 完成幻灯片生成...</p>
+                    </div>
+                </div>
+                
+                <p class="text-center text-sm text-gray-500 mt-3">根据文档大小和复杂度，可能需要30-60秒</p>
+                <p class="text-center text-xs text-gray-400 mt-1">请勿关闭或刷新此页面</p>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">使用说明</h2>
+            <ol class="list-decimal pl-5 space-y-2">
+                <li>上传Word文档(.docx)、PDF文件(.pdf)或文本文件(.txt/.md)</li>
+                <li>AI将分析文档内容，提取重要信息</li>
+                <li>根据指定的幻灯片数量和布局要求生成幻灯片</li>
+                <li>可选自动添加与内容相关的图片</li>
+                <li>生成后可以在编辑页面进一步调整内容</li>
+            </ol>
+            <div class="mt-4">
+                <h3 class="font-semibold">最佳实践:</h3>
+                <ul class="list-disc pl-5 text-gray-700 text-sm">
+                    <li>使用结构良好的文档，包含清晰的标题和段落</li>
+                    <li>对于Word文档，使用标题样式可以获得更好的结果</li>
+                    <li>PDF文档需要包含可选中的文本，而非纯图片</li>
+                    <li>文档大小建议不超过5MB，内容不超过20页</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 显示已选择的文件名
+        document.getElementById('document_file').addEventListener('change', function(event) {
+            const fileName = event.target.files[0]?.name;
+            const fileNameElement = document.getElementById('file-name');
+            
+            if (fileName) {
+                fileNameElement.textContent = `已选择: ${fileName}`;
+                fileNameElement.classList.remove('hidden');
+            } else {
+                fileNameElement.classList.add('hidden');
+            }
+        });
+
+        // 文件拖放功能
+        const dropArea = document.querySelector('form .border-dashed');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('border-blue-400');
+            dropArea.classList.add('bg-blue-50');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('border-blue-400');
+            dropArea.classList.remove('bg-blue-50');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('document_file').files = files;
+            
+            // 触发change事件，更新文件名显示
+            const event = new Event('change', { 'bubbles': true });
+            document.getElementById('document_file').dispatchEvent(event);
+        }
+
+        // 显示加载状态
+        document.getElementById('import-form').addEventListener('submit', function(event) {
+            // 显示加载指示器
+            document.getElementById('loading').style.display = 'block';
+            // 禁用提交按钮，防止重复提交
+            this.querySelector('button[type="submit"]').disabled = true;
+            
+            // 启动进度模拟
+            simulateProgress();
+        });
+        
+        // 模拟处理进度
+        function simulateProgress() {
+            const progressBar = document.getElementById('progress-bar');
+            const stages = [
+                document.getElementById('stage-extract'),
+                document.getElementById('stage-analyze'),
+                document.getElementById('stage-generate'),
+                document.getElementById('stage-images'),
+                document.getElementById('stage-finalize')
+            ];
+            
+            let currentStage = 0;
+            let progress = 10;
+            
+            // 每个阶段的进度百分比
+            const stageProgress = [25, 50, 75, 90, 100];
+            
+            // 设置第一个阶段为活动状态
+            stages[0].classList.replace('border-gray-300', 'border-blue-500');
+            stages[0].classList.add('bg-blue-50');
+            
+            const interval = setInterval(function() {
+                // 增加进度
+                if (progress < stageProgress[currentStage]) {
+                    progress += 1;
+                    progressBar.style.width = progress + '%';
+                } else if (currentStage < stages.length - 1) {
+                    // 移动到下一个阶段
+                    stages[currentStage].classList.add('text-gray-500');
+                    currentStage++;
+                    
+                    // 设置新的活动阶段
+                    stages[currentStage].classList.replace('border-gray-300', 'border-blue-500');
+                    stages[currentStage].classList.add('bg-blue-50');
+                } else {
+                    // 所有阶段完成后，停止更新
+                    clearInterval(interval);
+                }
+            }, 800); // 进度更新间隔，可以调整
+            
+            // 确保当页面提交后，如果用户没有看到结果，在较长时间后停止模拟
+            setTimeout(function() {
+                clearInterval(interval);
+            }, 60000); // 60秒后停止
+        }
+    </script>
+</body>
+</html> 

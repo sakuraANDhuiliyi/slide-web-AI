@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>智能布局调整测试</title>
+    <link rel="stylesheet" href="./staticfiles/reveal/reveal.css">
+    <link rel="stylesheet" href="./staticfiles/reveal/theme/white.css">
+    <link rel="stylesheet" href="./staticfiles/jyy/jyy.css">
+    <style>
+        .test-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test-controls button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-controls">
+        <button onclick="resetAdjustments()">重置调整</button>
+        <button onclick="triggerAdjustment()">手动调整</button>
+        <button onclick="toggleDebug()">调试模式</button>
+    </div>
+
+    <div class="reveal">
+        <div class="slides">
+            <!-- 测试幻灯片1：图文混排 -->
+            <section>
+                <h1>智能调整测试</h1>
+                <div class="middle">
+                    <h2>优化后的自动调整功能</h2>
+                    <p>这是一个测试页面，用来验证新的智能调整算法是否能够保持原有的布局美感，同时有效解决内容溢出问题。</p>
+                </div>
+            </section>
+
+            <!-- 测试幻灯片2：复杂布局 -->
+            <section>
+                <h2>示例文章：如何给你的网站优化</h2>
+                <div class="author-block center">
+                    <p><strong>作者：鱼鱼</strong></p>
+                </div>
+                
+                <div class="layout-grid">
+                    <div>
+                        <h3>xieyumc</h3>
+                        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
+                             alt="GitHub" style="width: 100px; height: 100px;">
+                    </div>
+                    <div>
+                        <h3>鱼鱼幼稚园</h3>
+                        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
+                             alt="Logo" style="width: 100px; height: 100px;">
+                    </div>
+                    <div>
+                        <h3>jyySlideWeb</h3>
+                        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
+                             alt="Web" style="width: 100px; height: 100px;">
+                    </div>
+                </div>
+                
+                <div>
+                    <p>这是一个包含大量文本内容的段落，用来测试当内容过多时，智能调整系统是否能够温和地调整字体大小，而不会破坏原有的布局结构和设计美感。同时保持良好的可读性和视觉平衡。</p>
+                    <ul>
+                        <li>保持关键元素（如标题、作者信息）的稳定性</li>
+                        <li>优先调整非关键内容（如普通段落文本）</li>
+                        <li>智能检测是否真的需要调整</li>
+                        <li>提供回滚机制防止过度调整</li>
+                        <li>温和的调整策略保护设计美感</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 测试幻灯片3：大量文本 -->
+            <section>
+                <h2>文本密集型内容测试</h2>
+                <p>这是一个文本密集型的幻灯片，包含大量的文字内容。新的智能调整系统应该能够：</p>
+                <ol>
+                    <li><strong>精确检测溢出</strong>：只在内容真正超出容器边界超过阈值时才进行调整</li>
+                    <li><strong>保护关键元素</strong>：标题、作者信息等关键布局元素不会被随意调整</li>
+                    <li><strong>温和调整策略</strong>：使用更小的调整步长，避免突兀的变化</li>
+                    <li><strong>智能优先级</strong>：优先调整图片尺寸，其次是普通文本，最后才考虑标题</li>
+                    <li><strong>效果验证</strong>：检查调整是否真的改善了布局，如果没有则回滚</li>
+                    <li><strong>布局保护</strong>：尽量保持原有的排版结构和视觉层次</li>
+                </ol>
+                <p>通过这些改进，我们希望能够在解决内容溢出问题的同时，最大程度地保持幻灯片的原始设计意图和视觉美感。</p>
+            </section>
+        </div>
+    </div>
+
+    <script src="./staticfiles/reveal/reveal.js"></script>
+    <script src="./staticfiles/js/auto-resize-optimized.js"></script>
+    
+    <script>
+        Reveal.initialize({
+            hash: true,
+            transition: 'slide'
+        });
+
+        // 测试控制函数
+        function resetAdjustments() {
+            if (window.AutoResize) {
+                window.AutoResize.reset();
+                console.log('已重置所有调整');
+            }
+        }
+
+        function triggerAdjustment() {
+            if (window.AutoResize) {
+                const currentSlide = Reveal.getCurrentSlide();
+                if (currentSlide) {
+                    currentSlide.dataset.smartAdjusted = 'false';
+                    window.AutoResize.adjustSlide(currentSlide);
+                    console.log('已触发手动调整');
+                }
+            }
+        }
+
+        let debugMode = false;
+        function toggleDebug() {
+            debugMode = !debugMode;
+            if (debugMode) {
+                // 显示调试信息
+                const slides = document.querySelectorAll('.reveal .slides section');
+                slides.forEach(slide => {
+                    const info = document.createElement('div');
+                    info.style.cssText = `
+                        position: absolute;
+                        top: 5px;
+                        left: 5px;
+                        background: rgba(255,0,0,0.7);
+                        color: white;
+                        padding: 5px;
+                        font-size: 12px;
+                        z-index: 100;
+                    `;
+                    info.innerHTML = `
+                        溢出高度: ${slide.scrollHeight - slide.clientHeight}px<br>
+                        容器高度: ${slide.clientHeight}px<br>
+                        已调整: ${slide.dataset.smartAdjusted || 'false'}
+                    `;
+                    info.className = 'debug-info';
+                    slide.appendChild(info);
+                });
+                console.log('调试模式已开启');
+            } else {
+                // 隐藏调试信息
+                document.querySelectorAll('.debug-info').forEach(el => el.remove());
+                console.log('调试模式已关闭');
+            }
+        }
+
+        // 监听幻灯片变化，更新调试信息
+        Reveal.on('slidechanged', () => {
+            if (debugMode) {
+                document.querySelectorAll('.debug-info').forEach(el => el.remove());
+                toggleDebug();
+                toggleDebug();
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ slide.title }}</title>
+    <style>
+        /* 全屏显示的样式 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 工具栏样式 */
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000; /* 确保它在其他元素之上 */
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 返回按钮样式 */
+        .return-button {
+            background-color: gray;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .return-button:hover {
+            background-color: gray;
+        }
+        
+        /* 导出按钮样式 */
+        .export-button {
+            background-color: #2196F3;
+            border: none;
+            color: #ffffff;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .export-button:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+<!-- 工具栏，包含返回公共页面的按钮 -->
+<div id="toolbar">
+    <button class="export-button" onclick="exportSlide()">导出PPTX</button>
+    <button class="return-button" onclick="location.href='{% url 'public_slides' %}'">返回</button>
+</div>
+
+<div id="preview">
+    {{ slide_html|safe }}  <!-- 渲染预览的HTML内容 -->
+</div>
+
+<script>
+    // 导出幻灯片为PPTX
+    function exportSlide() {
+        // 弹出提示
+        const confirmed = confirm('将生成PPTX格式文件供下载，过程可能需要几秒钟，确定要导出吗？');
+        if (confirmed) {
+            // 显示加载中提示
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'export-loading';
+            loadingDiv.style.position = 'fixed';
+            loadingDiv.style.top = '50%';
+            loadingDiv.style.left = '50%';
+            loadingDiv.style.transform = 'translate(-50%, -50%)';
+            loadingDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            loadingDiv.style.color = '#fff';
+            loadingDiv.style.padding = '20px';
+            loadingDiv.style.borderRadius = '5px';
+            loadingDiv.style.zIndex = '2000';
+            loadingDiv.innerHTML = '<p>正在生成PPTX，请稍候...</p>';
+            document.body.appendChild(loadingDiv);
+            
+            // 执行导出操作
+            window.location.href = '{% url 'export_to_pptx' slide_id=slide.id %}';
+            
+            // 5秒后移除加载提示
+            setTimeout(function() {
+                const loadingElement = document.getElementById('export-loading');
+                if (loadingElement) {
+                    loadingElement.parentNode.removeChild(loadingElement);
+                }
+            }, 5000);
+        }
+    }
+</script>
+</body>
+</html>

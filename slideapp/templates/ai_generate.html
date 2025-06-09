@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI生成幻灯片 - jyySlideWeb</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        /* 内联样式，避免外部样式表依赖 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 500;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: 0.25rem;
+            transition: all 0.15s ease-in-out;
+        }
+        .btn-primary {
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">AI生成幻灯片</h1>
+                <nav>
+                    <a href="{% url 'index' %}" class="text-blue-500 hover:text-blue-700">返回主页</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+            <form method="post" id="generate-form">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="title" class="block text-gray-700 mb-2">幻灯片标题</label>
+                    <input type="text" id="title" name="title" class="w-full px-3 py-2 border rounded" placeholder="输入幻灯片标题" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="content_requirements" class="block text-gray-700 mb-2">内容要求</label>
+                    <textarea id="content_requirements" name="content_requirements" rows="5" class="w-full px-3 py-2 border rounded" placeholder="详细描述您想要的幻灯片内容，包括主题、要点、风格等..." required></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="slides_count" class="block text-gray-700 mb-2">幻灯片数量 (1-10)</label>
+                    <input type="number" id="slides_count" name="slides_count" min="1" max="10" value="5" class="w-full px-3 py-2 border rounded">
+                </div>
+
+                <div class="mb-4">
+                    <label for="style" class="block text-gray-700 mb-2">风格选择</label>
+                    <select id="style" name="style" class="w-full px-3 py-2 border rounded">
+                        <option value="academic">学术风格</option>
+                        <option value="business">商务风格</option>
+                        <option value="creative">创意风格</option>
+                        <option value="simple">简约风格</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="layout" class="block text-gray-700 mb-2">布局选择</label>
+                    <select id="layout" name="layout" class="w-full px-3 py-2 border rounded">
+                        <option value="horizontal_vertical">水平章节+垂直子页面 (推荐)</option>
+                        <option value="horizontal_only">仅水平切换</option>
+                        <option value="with_animation">包含渐变效果</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">
+                        水平章节+垂直子页面：使用方向键左右切换章节，上下切换同一章节的内容<br>
+                        仅水平切换：所有幻灯片平铺，只能左右切换<br>
+                        包含渐变效果：在适当位置添加渐变切换，展示内容变化过程
+                    </p>
+                </div>
+
+                <div class="mb-4 flex items-center">
+                    <input type="checkbox" id="auto_insert_images" name="auto_insert_images" class="mr-2" checked>
+                    <label for="auto_insert_images" class="text-gray-700">自动插入相关图片 <span class="text-sm text-gray-500">(AI会分析内容，从Unsplash搜索相关图片)</span></label>
+                </div>
+
+                <div class="text-right">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        生成幻灯片
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="text-center mt-2">正在生成幻灯片，请稍候...</p>
+                <p class="text-center text-sm text-gray-500">根据内容复杂度，可能需要10-30秒</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generate-form').addEventListener('submit', function(event) {
+            // 显示加载指示器
+            document.getElementById('loading').style.display = 'block';
+            // 禁用提交按钮，防止重复提交
+            this.querySelector('button[type="submit"]').disabled = true;
+        });
+    </script>
+</body>
+</html> 
