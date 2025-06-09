@@ -4,6 +4,8 @@
 
 安装运行参考https://github.com/xieyumc/jyySlideWeb
 
+记得申请Gemini的api和unsplash的api填写在setting.py
+
 本项目对比原项目新增加了：
 
 ## 智能布局调整系统
